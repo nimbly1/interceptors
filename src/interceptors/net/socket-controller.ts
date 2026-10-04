@@ -1560,6 +1560,16 @@ export class TlsSocketController extends TcpSocketController {
     super.emulateConnect()
     this.#secureConnectEmulated = true
 
+    /**
+     * @note The client may destroy the socket while handling the emulated
+     * "connect" (e.g. its request was aborted), which also releases the handle.
+     * There is no handshake left to notify, and the "secureConnect" listeners
+     * read the ALPN protocol from that handle.
+     */
+    if (this.socket.destroyed) {
+      return
+    }
+
     // For TLS sockets, also invoke the "secureConnect" callbacks since some consumers,
     // like Undici, listen to those to start writing to the socket.
     for (const listener of this.socket.rawListeners('secureConnect')) {
